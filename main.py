@@ -331,19 +331,20 @@ class App(_BASE):
     self.ent_rule = tk.Entry(rule_row, font=FONT, bg=SURFACE, fg=TEXT,
                              insertbackground=TEXT, relief="flat",
                              highlightthickness=1, highlightcolor=ACCENT,
-                             highlightbackground=BORDER)
+                             highlightbackground=BORDER,
+                             disabledbackground=SURFACE2, disabledforeground=BORDER)
     self.ent_rule.pack(side="left", fill="x", expand=True, ipady=6)
 
     # 힌트 태그 (클릭 시 입력창에 삽입)
     hint_row = tk.Frame(opt_in, bg=SURFACE2)
     hint_row.pack(fill="x", pady=(6,0))
+    self._hint_tags = []
     for tag, desc in [("%d","번호"), ("%02d","제로패딩"), ("%03d","세자리"), ("%d화","화수"), ("%02d화","제로패딩+화수")]:
       t = tk.Label(hint_row, text=f" {tag}  {desc} ", font=FONT_XS,
                    bg=SURFACE, fg=SUBTEXT, cursor="hand2",
                    highlightthickness=1, highlightbackground=BORDER)
       t.pack(side="left", padx=(0,6))
-      t.bind("<Button-1>", lambda e, s=tag: self._insert_tag(s))
-      hover(t, SURFACE2, SURFACE, ACCENT, SUBTEXT)
+      self._hint_tags.append((tag, t))
 
     tk.Frame(opt_in, bg=BORDER, height=1).pack(fill="x", pady=10)
 
@@ -352,14 +353,16 @@ class App(_BASE):
     num_row.pack(fill="x")
     tk.Label(num_row, text="시작 번호", font=FONT_SM, bg=SURFACE2,
              fg=SUBTEXT).pack(side="left", padx=(0,10))
-    spn_wrap = tk.Frame(num_row, bg=SURFACE,
-                        highlightthickness=1, highlightbackground=BORDER)
-    spn_wrap.pack(side="left")
-    self.spn_start = tk.Spinbox(spn_wrap, from_=1, to=999, width=5,
+    self._spn_wrap = tk.Frame(num_row, bg=SURFACE,
+                              highlightthickness=1, highlightbackground=BORDER)
+    self._spn_wrap.pack(side="left")
+    self.spn_start = tk.Spinbox(self._spn_wrap, from_=1, to=999, width=5,
                                 font=FONT, bg=SURFACE, fg=TEXT,
                                 relief="flat", bd=0, highlightthickness=0,
-                                buttonbackground=SURFACE2, insertbackground=TEXT)
+                                buttonbackground=SURFACE2, insertbackground=TEXT,
+                                disabledbackground=SURFACE2, disabledforeground=BORDER)
     self.spn_start.pack(padx=4, pady=3)
+    self._update_rule_widgets()
 
     # ── 액션 바 ──
     act = tk.Frame(body, bg=BG)
@@ -461,6 +464,22 @@ class App(_BASE):
         fg=ACCENT if active else SUBTEXT,
         highlightbackground=ACCENT if active else BORDER,
       )
+    self._update_rule_widgets()
+
+  def _update_rule_widgets(self):
+    # 이름규칙 모드일 때만 입력 위젯 활성화
+    is_rule = self.mode_var.get() == "rule"
+    self.ent_rule.config(state="normal" if is_rule else "disabled")
+    self.spn_start.config(state="normal" if is_rule else "disabled")
+    self._spn_wrap.config(highlightbackground=BORDER if is_rule else SURFACE2)
+    for tag, lbl in self._hint_tags:
+      if is_rule:
+        lbl.config(fg=SUBTEXT, cursor="hand2")
+        lbl.bind("<Button-1>", lambda e, s=tag: self._insert_tag(s))
+        hover(lbl, SURFACE2, SURFACE, ACCENT, SUBTEXT)
+      else:
+        lbl.config(fg=BORDER, cursor="")
+        lbl.unbind("<Button-1>")
 
   def _insert_tag(self, tag):
     # 힌트 태그 클릭 시 입력창에 삽입
